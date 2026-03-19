@@ -107,16 +107,21 @@ $ farts query "author missing" notes/*.md
 
 ## Frontmatter format
 
-Flat YAML key-value pairs delimited by `---`. Lists use bracket notation. `[[wikilinks]]` are preserved in list values.
+YAML frontmatter delimited by `---`. Parsed with PyYAML — standard YAML features work, including multi-line lists. `[[wikilinks]]` are preserved in list values.
 
 ```yaml
 ---
 title: My Note
 tags: [guide, tooling]
+signals:
+  - no-agency
+  - binge
 related: [[[other-note]], [[another]]]
 created: 2026-03-18
 ---
 ```
+
+**Note:** PyYAML applies standard YAML type coercion — dates become `datetime.date`, `yes`/`no` become booleans, bare numbers become ints. This aligns with how Hugo/Jekyll/Obsidian parse frontmatter. Edge cases: `version: 010` becomes octal `8`, and `str(True)` is `"True"` not `"true"`.
 
 <br />
 
