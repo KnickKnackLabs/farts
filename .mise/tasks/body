@@ -3,4 +3,4 @@
 #USAGE arg "<file>" help="Markdown file to read"
 
 set -euo pipefail
-exec python3 "$MISE_CONFIG_ROOT/lib/farts.py" body "$@"
+exec uv run --project "$MISE_CONFIG_ROOT" python3 "$MISE_CONFIG_ROOT/lib/farts.py" body "$@"

@@ -1,4 +1,5 @@
 [tools]
 python = "3"
+uv = "0.10.0"
 bats = "1.13.0"
 usage = "1"

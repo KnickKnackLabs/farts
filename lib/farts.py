@@ -1,14 +1,33 @@
 """farts — frontmatter parsing and manipulation.
 
-Pure stdlib. No external dependencies.
-
-Frontmatter is a YAML block delimited by --- lines at the top of a markdown file.
-We handle flat key-value pairs and simple bracket-notation lists [a, b, c].
-We handle [[wikilinks]] in related fields.
+Uses PyYAML for parsing. Frontmatter is a YAML block delimited by --- lines
+at the top of a markdown file.
 """
 
 import sys
 import re
+import yaml
+
+
+_WL_SENTINEL = "\ufdd0"
+
+
+def _escape_wikilinks(text):
+    """Replace [[name]] wikilinks with quoted sentinels so YAML parses them as strings."""
+    # Match [[...]] wikilinks (content is non-bracket chars)
+    return re.sub(r'\[\[([^\[\]]+)\]\]', _WL_SENTINEL + r'\1' + _WL_SENTINEL, text)
+
+
+def _restore_wikilinks(val):
+    """Restore wikilink sentinels in parsed values."""
+    if isinstance(val, str):
+        return re.sub(_WL_SENTINEL + r'([^' + _WL_SENTINEL + r']+)' + _WL_SENTINEL,
+                      r'[[\1]]', val)
+    if isinstance(val, list):
+        return [_restore_wikilinks(v) for v in val]
+    if isinstance(val, dict):
+        return {k: _restore_wikilinks(v) for k, v in val.items()}
+    return val
 
 
 def parse_frontmatter(text):
@@ -17,78 +36,33 @@ def parse_frontmatter(text):
     raw_fm_lines includes the --- delimiters for faithful reconstruction.
     """
     lines = text.split("\n")
-    fields = {}
-    fm_lines = []
-    body_start = 0
 
     if not lines or lines[0].strip() != "---":
         return {}, text, []
 
-    fm_lines.append(lines[0])
-    in_fm = True
+    # Find closing ---
+    end = None
     for i, line in enumerate(lines[1:], 1):
         if line.strip() == "---":
-            fm_lines.append(line)
-            body_start = i + 1
-            in_fm = False
+            end = i
             break
-        fm_lines.append(line)
-        key, _, val = line.partition(":")
-        if val:
-            key = key.strip()
-            val = val.strip()
-            fields[key] = _parse_value(val)
-    else:
+
+    if end is None:
         # No closing ---, treat entire content as body
         return {}, text, []
 
-    body = "\n".join(lines[body_start:])
+    fm_lines = lines[:end + 1]
+    fm_text = "\n".join(lines[1:end])
+    fm_text = _escape_wikilinks(fm_text)
+    fields = yaml.safe_load(fm_text) or {}
+    fields = _restore_wikilinks(fields)
+
+    body = "\n".join(lines[end + 1:])
     # Strip single leading newline between frontmatter and body
     if body.startswith("\n"):
         body = body[1:]
 
     return fields, body, fm_lines
-
-
-def _parse_value(val):
-    """Parse a frontmatter value string into a Python value."""
-    # Strip surrounding quotes
-    if (val.startswith('"') and val.endswith('"')) or \
-       (val.startswith("'") and val.endswith("'")):
-        return val[1:-1]
-
-    # Bracket-notation list: [a, b, c] or [[[link]], [[link2]]]
-    if val.startswith("[") and val.endswith("]"):
-        inner = val[1:-1].strip()
-        if not inner:
-            return []
-        # Handle [[wikilinks]] — split on comma but respect brackets
-        items = _split_list(inner)
-        return [item.strip().strip("'\"") for item in items]
-
-    return val
-
-
-def _split_list(s):
-    """Split a frontmatter list value on commas, respecting [[wikilinks]]."""
-    items = []
-    depth = 0
-    current = []
-    for char in s:
-        if char == "[":
-            depth += 1
-            current.append(char)
-        elif char == "]":
-            depth -= 1
-            current.append(char)
-        elif char == "," and depth == 0:
-            items.append("".join(current))
-            current = []
-        else:
-            current.append(char)
-    if current:
-        items.append("".join(current))
-    return items
 
 
 def format_value(val):
@@ -111,7 +85,10 @@ def get_body(text):
 
 
 def set_field(text, field, value):
-    """Set a field in frontmatter. Creates frontmatter if none exists."""
+    """Set a field in frontmatter. Creates frontmatter if none exists.
+
+    Operates on raw lines to preserve formatting of untouched fields.
+    """
     fields, body, fm_lines = parse_frontmatter(text)
 
     if not fm_lines:
@@ -119,18 +96,33 @@ def set_field(text, field, value):
         return "---\n{}: {}\n---\n\n{}".format(field, value, text)
 
     # Check if field already exists — replace in place
+    # We need to handle multi-line fields: skip continuation lines
     new_fm_lines = []
     replaced = False
+    skip_continuation = False
     for line in fm_lines:
         if line.strip() == "---":
+            skip_continuation = False
             new_fm_lines.append(line)
             continue
+
+        if skip_continuation:
+            # Skip multi-line list continuation lines (  - value)
+            if re.match(r'^\s+-\s+', line):
+                continue
+            skip_continuation = False
+
         key, sep, _ = line.partition(":")
         if sep and key.strip() == field:
             new_fm_lines.append("{}: {}".format(field, value))
             replaced = True
-        else:
-            new_fm_lines.append(line)
+            # If the old value was a multi-line list, skip its continuation
+            val_part = _.strip()
+            if not val_part:
+                skip_continuation = True
+            continue
+
+        new_fm_lines.append(line)
 
     # Field doesn't exist yet — add before closing ---
     if not replaced:
@@ -194,17 +186,18 @@ def matches_query(fields, expr):
             return value not in fval
         return False
 
-    # Scalar comparison
+    # Scalar comparison — convert to string for consistent matching
+    fval_str = str(fval)
     if op == "=":
-        return str(fval) == value
+        return fval_str == value
     elif op == "!=":
-        return str(fval) != value
+        return fval_str != value
     elif op == "contains":
-        return value in str(fval)
+        return value in fval_str
     elif op == ">":
-        return str(fval) > value
+        return fval_str > value
     elif op == "<":
-        return str(fval) < value
+        return fval_str < value
 
     return False
 

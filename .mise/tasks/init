@@ -4,4 +4,4 @@
 #USAGE arg "[fields]" var=#true help="Optional field=value pairs"
 
 set -euo pipefail
-exec python3 "$MISE_CONFIG_ROOT/lib/farts.py" init "$@"
+exec uv run --project "$MISE_CONFIG_ROOT" python3 "$MISE_CONFIG_ROOT/lib/farts.py" init "$@"

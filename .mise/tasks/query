@@ -4,4 +4,4 @@
 #USAGE arg "<files>" var=#true help="Markdown files to search"
 
 set -euo pipefail
-exec python3 "$MISE_CONFIG_ROOT/lib/farts.py" query "$@"
+exec uv run --project "$MISE_CONFIG_ROOT" python3 "$MISE_CONFIG_ROOT/lib/farts.py" query "$@"
