@@ -193,9 +193,9 @@ $ farts query "author missing" notes/*.md`}</CodeBlock>
 
     <Section title="Frontmatter format">
       <Paragraph>
-        {"Flat YAML key-value pairs delimited by "}
+        {"YAML frontmatter delimited by "}
         <Code>---</Code>
-        {". Lists use bracket notation. "}
+        {". Parsed with PyYAML — standard YAML features work, including multi-line lists. "}
         <Code>{"[[wikilinks]]"}</Code>
         {" are preserved in list values."}
       </Paragraph>
@@ -203,9 +203,23 @@ $ farts query "author missing" notes/*.md`}</CodeBlock>
       <CodeBlock lang="yaml">{`---
 title: My Note
 tags: [guide, tooling]
+signals:
+  - no-agency
+  - binge
 related: [[[other-note]], [[another]]]
 created: 2026-03-18
 ---`}</CodeBlock>
+
+      <Paragraph>
+        <Bold>Note:</Bold>
+        {" PyYAML applies standard YAML type coercion — dates become "}
+        <Code>datetime.date</Code>
+        {", "}
+        <Code>yes</Code>
+        {"/"}
+        <Code>no</Code>
+        {" become booleans, bare numbers become ints. This aligns with how Hugo/Jekyll/Obsidian parse frontmatter."}
+      </Paragraph>
     </Section>
 
     <LineBreak />

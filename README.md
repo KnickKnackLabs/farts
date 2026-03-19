@@ -121,7 +121,7 @@ created: 2026-03-18
 ---
 ```
 
-**Note:** PyYAML applies standard YAML type coercion — dates become `datetime.date`, `yes`/`no` become booleans, bare numbers become ints. This aligns with how Hugo/Jekyll/Obsidian parse frontmatter. Edge cases: `version: 010` becomes octal `8`, and `str(True)` is `"True"` not `"true"`.
+**Note:** PyYAML applies standard YAML type coercion — dates become `datetime.date`, `yes`/`no` become booleans, bare numbers become ints. This aligns with how Hugo/Jekyll/Obsidian parse frontmatter.
 
 <br />
 
