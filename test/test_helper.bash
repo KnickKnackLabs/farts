@@ -9,6 +9,8 @@ create_test_file() {
 }
 
 # Shorthand to run farts.py
+FARTS_ROOT="$BATS_TEST_DIRNAME/.."
+
 farts() {
-  python3 "$FARTS_PY" "$@"
+  uv run --project "$FARTS_ROOT" python3 "$FARTS_PY" "$@"
 }
