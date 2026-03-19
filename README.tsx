@@ -8,54 +8,117 @@ import {
   Badge, Badges, Center, Section,
   Table, TableHead, TableRow, Cell,
   List, Item,
+  Raw, HtmlLink, Sub,
 } from "readme/src/components";
 
-const REPO_DIR = resolve(import.meta.dirname);
+// ── Dynamic data ─────────────────────────────────────────────
 
-// Extract task descriptions from .mise/tasks/
+const REPO_DIR = resolve(import.meta.dirname);
 const TASK_DIR = join(REPO_DIR, ".mise/tasks");
+
+// Extract commands from task files
 const tasks = readdirSync(TASK_DIR)
   .filter((f) => f !== "test")
   .map((name) => {
     const src = readFileSync(join(TASK_DIR, name), "utf-8");
     const desc = src.match(/#MISE description="(.+?)"/)?.[1] ?? "";
-    const usageLines = [...src.matchAll(/#USAGE arg "(.+?)"(.*)/g)].map((m) => {
-      const argName = m[1];
-      const help = m[2].match(/help="(.+?)"/)?.[1] ?? "";
-      return { argName, help };
-    });
-    return { name, desc, usageLines };
+    const args = [...src.matchAll(/#USAGE arg "(<?.+?>?)" help="(.+?)"/g)].map(
+      (m) => m[1],
+    );
+    return { name, desc, usage: `farts ${name} ${args.join(" ")}`.trim() };
   })
+  .filter((t) => t.desc)
   .sort((a, b) => a.name.localeCompare(b.name));
 
 // Count tests
 const testSrc = readFileSync(join(REPO_DIR, "test/farts.bats"), "utf-8");
 const testCount = (testSrc.match(/@test "/g) || []).length;
 
+// ── Helpers ──────────────────────────────────────────────────
+
+function box(lines: string[], { padding = 1 }: { padding?: number } = {}): string {
+  const maxLen = Math.max(...lines.map((l) => l.length));
+  const w = maxLen + padding * 2;
+  const pad = (s: string) => " ".repeat(padding) + s + " ".repeat(w - s.length - padding);
+  const top = "┌" + "─".repeat(w) + "┐";
+  const bot = "└" + "─".repeat(w) + "┘";
+  return [top, ...lines.map((l) => "│" + pad(l) + "│"), bot].join("\n");
+}
+
+const hero = box([
+  "---",
+  "title: Your Note",
+  "tags: [important]",
+  "---",
+  "",
+  "$ farts get title note.md",
+  "Your Note",
+], { padding: 2 });
+
+// ── README ───────────────────────────────────────────────────
+
 const readme = (
   <>
     <Center>
+      <Raw>{`<pre>\n${hero}\n</pre>\n\n`}</Raw>
+
       <Heading level={1}>farts</Heading>
+
       <Paragraph>
         <Bold>Frontmatter parsing CLI for markdown files.</Bold>
       </Paragraph>
+
+      <Paragraph>
+        {"Read it. Write it. Query it. No more artisanal awk parsers."}
+      </Paragraph>
+
       <Badges>
         <Badge label="tests" value={`${testCount} passing`} color="brightgreen" />
         <Badge label="lang" value="python + bash" color="3776AB" logo="python" logoColor="white" />
-        <Badge label="license" value="MIT" color="blue" />
+        <Badge label="license" value="MIT" color="blue" href="LICENSE" />
       </Badges>
     </Center>
 
-    <Paragraph>
-      {"Extract, modify, and query YAML frontmatter in markdown files. "}
-      {"Replaces the scattered inline parsers across our codebases with a single reusable tool."}
-    </Paragraph>
+    <LineBreak />
 
     <Section title="Install">
       <CodeBlock lang="bash">{`shiv install farts`}</CodeBlock>
     </Section>
 
+    <LineBreak />
+
+    <Section title="Quick start">
+      <CodeBlock lang="bash">{`# Read a field
+$ farts get title notes/my-note.md
+My Note
+
+# Read tags (one per line)
+$ farts get tags notes/my-note.md
+guide
+tooling
+
+# Strip frontmatter, get the content
+$ farts body notes/my-note.md
+
+# Set a field (in place)
+$ farts set created 2026-03-18 notes/my-note.md
+
+# Find notes by frontmatter
+$ farts query "tags contains guide" notes/*.md
+
+# Add frontmatter to a bare file
+$ farts init README.md title="My Doc"`}</CodeBlock>
+    </Section>
+
+    <LineBreak />
+
     <Section title="Commands">
+      <Paragraph>
+        {"Generated from "}
+        <Code>.mise/tasks/</Code>
+        {` — ${tasks.length} commands:`}
+      </Paragraph>
+
       <Table>
         <TableHead>
           <Cell>Command</Cell>
@@ -63,61 +126,21 @@ const readme = (
         </TableHead>
         {tasks.map((t) => (
           <TableRow>
-            <Cell>
-              <Code>{`farts ${t.name}`}</Code>
-            </Cell>
+            <Cell><Code>{t.usage}</Code></Cell>
             <Cell>{t.desc}</Cell>
           </TableRow>
         ))}
       </Table>
     </Section>
 
-    <Section title="Usage">
-      <Heading level={3}>Get a field</Heading>
-      <CodeBlock lang="bash">{`$ farts get title notes/my-note.md
-My Note
+    <LineBreak />
 
-$ farts get tags notes/my-note.md
-guide
-tooling
-mise`}</CodeBlock>
+    <Section title="Query expressions">
+      <Paragraph>
+        <Code>farts query</Code>
+        {" filters files using simple expressions:"}
+      </Paragraph>
 
-      <Heading level={3}>Get the body (strip frontmatter)</Heading>
-      <CodeBlock lang="bash">{`$ farts body notes/my-note.md
-# My Note
-
-Content starts here...`}</CodeBlock>
-
-      <Heading level={3}>Set a field</Heading>
-      <CodeBlock lang="bash">{`# Update existing field
-$ farts set title "New Title" notes/my-note.md
-
-# Add new field (creates frontmatter if none exists)
-$ farts set author rho notes/my-note.md`}</CodeBlock>
-
-      <Heading level={3}>Query files by frontmatter</Heading>
-      <CodeBlock lang="bash">{`# Find all guides
-$ farts query "tags contains guide" notes/*.md
-notes/creating-a-codebase.md
-notes/mise-gotchas.md
-notes/releasing.md
-
-# Find recent notes
-$ farts query "created > 2026-03-01" notes/*.md
-
-# Check field presence
-$ farts query "type exists" notes/*.md
-$ farts query "author missing" notes/*.md`}</CodeBlock>
-
-      <Heading level={3}>Initialize frontmatter</Heading>
-      <CodeBlock lang="bash">{`# Add empty frontmatter
-$ farts init README.md
-
-# Add frontmatter with fields
-$ farts init README.md title="My Doc" created=2026-03-18`}</CodeBlock>
-    </Section>
-
-    <Section title="Query Expressions">
       <Table>
         <TableHead>
           <Cell>Expression</Cell>
@@ -152,16 +175,31 @@ $ farts init README.md title="My Doc" created=2026-03-18`}</CodeBlock>
           <Cell>Field is absent</Cell>
         </TableRow>
       </Table>
+
+      <CodeBlock lang="bash">{`# Find all guides
+$ farts query "tags contains guide" notes/*.md
+notes/creating-a-codebase.md
+notes/mise-gotchas.md
+notes/releasing.md
+
+# Notes created this month
+$ farts query "created > 2026-03-01" notes/*.md
+
+# Notes missing an author
+$ farts query "author missing" notes/*.md`}</CodeBlock>
     </Section>
 
-    <Section title="Frontmatter Format">
+    <LineBreak />
+
+    <Section title="Frontmatter format">
       <Paragraph>
         {"Flat YAML key-value pairs delimited by "}
         <Code>---</Code>
         {". Lists use bracket notation. "}
         <Code>{"[[wikilinks]]"}</Code>
-        {" are supported in list values."}
+        {" are preserved in list values."}
       </Paragraph>
+
       <CodeBlock lang="yaml">{`---
 title: My Note
 tags: [guide, tooling]
@@ -170,19 +208,35 @@ created: 2026-03-18
 ---`}</CodeBlock>
     </Section>
 
-    <Section title="Development">
-      <CodeBlock lang="bash">{`# Run tests
-farts test
+    <LineBreak />
 
-# Or directly
+    <Section title="Development">
+      <CodeBlock lang="bash">{`git clone https://github.com/KnickKnackLabs/farts.git
+cd farts && mise trust && mise install
 mise run test`}</CodeBlock>
+
+      <Paragraph>
+        {`${testCount} tests using `}
+        <Link href="https://github.com/bats-core/bats-core">BATS</Link>
+        {"."}
+      </Paragraph>
     </Section>
 
-    <HR />
+    <LineBreak />
+
     <Center>
-      <Paragraph>
-        <Link href="https://github.com/KnickKnackLabs">KnickKnackLabs</Link>
-      </Paragraph>
+      <HR />
+
+      <Sub>
+        {"Every codebase had its own frontmatter parser."}
+        <Raw>{"<br />"}</Raw>{"\n"}
+        {"Now there's one."}
+        <Raw>{"<br />"}</Raw>{"\n"}
+        <Raw>{"<br />"}</Raw>{"\n"}
+        {"This README was created using "}
+        <HtmlLink href="https://github.com/KnickKnackLabs/readme">readme</HtmlLink>
+        {"."}
+      </Sub>
     </Center>
   </>
 );
