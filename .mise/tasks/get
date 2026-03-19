@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Extract a frontmatter field value"
+#USAGE arg "<field>" help="Field name to extract"
+#USAGE arg "<file>" help="Markdown file to read"
+
+set -euo pipefail
+exec python3 "$MISE_CONFIG_ROOT/lib/farts.py" get "$@"

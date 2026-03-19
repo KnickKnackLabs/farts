@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Extract content after frontmatter"
+#USAGE arg "<file>" help="Markdown file to read"
+
+set -euo pipefail
+exec python3 "$MISE_CONFIG_ROOT/lib/farts.py" body "$@"

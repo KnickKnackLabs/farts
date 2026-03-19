@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Filter files by frontmatter fields"
+#USAGE arg "<expr>" help="Query expression (e.g. 'tags contains guide')"
+#USAGE arg "<files>" var=#true help="Markdown files to search"
+
+set -euo pipefail
+exec python3 "$MISE_CONFIG_ROOT/lib/farts.py" query "$@"

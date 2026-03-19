@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Set a frontmatter field value"
+#USAGE arg "<field>" help="Field name to set"
+#USAGE arg "<value>" help="Value to set"
+#USAGE arg "<file>" help="Markdown file to modify"
+
+set -euo pipefail
+exec python3 "$MISE_CONFIG_ROOT/lib/farts.py" set "$@"

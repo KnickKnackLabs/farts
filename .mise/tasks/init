@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="Initialize frontmatter on a file"
+#USAGE arg "<file>" help="Markdown file to initialize"
+#USAGE arg "[fields]" var=#true help="Optional field=value pairs"
+
+set -euo pipefail
+exec python3 "$MISE_CONFIG_ROOT/lib/farts.py" init "$@"
