@@ -7,13 +7,14 @@
 # ///
 
 import os
+import shlex
 import sys
 
 sys.path.insert(0, os.environ["MISE_CONFIG_ROOT"] + "/lib")
 from farts import parse_frontmatter, matches_query, resolve_path
 
 expr = os.environ["usage_expr"]
-files = os.environ.get("usage_files", "").split()
+files = shlex.split(os.environ.get("usage_files", ""))
 
 for path in files:
     path = resolve_path(path)
