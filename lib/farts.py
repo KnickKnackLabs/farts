@@ -4,8 +4,11 @@ Uses PyYAML for parsing. Frontmatter is a YAML block delimited by --- lines
 at the top of a markdown file.
 """
 
-import sys
+import os
 import re
+import sys
+from pathlib import Path
+
 import yaml
 
 
@@ -202,86 +205,13 @@ def matches_query(fields, expr):
     return False
 
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: farts.py <command> [args...]", file=sys.stderr)
-        sys.exit(1)
-
-    cmd = sys.argv[1]
-
-    if cmd == "get":
-        if len(sys.argv) < 4:
-            print("Usage: farts.py get <field> <file>", file=sys.stderr)
-            sys.exit(1)
-        field, path = sys.argv[2], sys.argv[3]
-        with open(path) as f:
-            text = f.read()
-        val = get_field(text, field)
-        if val is None:
-            sys.exit(1)
-        if isinstance(val, list):
-            for item in val:
-                print(item)
-        else:
-            print(val)
-
-    elif cmd == "body":
-        if len(sys.argv) < 3:
-            print("Usage: farts.py body <file>", file=sys.stderr)
-            sys.exit(1)
-        path = sys.argv[2]
-        with open(path) as f:
-            text = f.read()
-        body = get_body(text)
-        print(body, end="")
-
-    elif cmd == "set":
-        if len(sys.argv) < 5:
-            print("Usage: farts.py set <field> <value> <file>", file=sys.stderr)
-            sys.exit(1)
-        field, value, path = sys.argv[2], sys.argv[3], sys.argv[4]
-        with open(path) as f:
-            text = f.read()
-        result = set_field(text, field, value)
-        with open(path, "w") as f:
-            f.write(result)
-
-    elif cmd == "query":
-        if len(sys.argv) < 4:
-            print("Usage: farts.py query <expr> <file>...", file=sys.stderr)
-            sys.exit(1)
-        expr = sys.argv[2]
-        files = sys.argv[3:]
-        for path in files:
-            try:
-                with open(path) as f:
-                    text = f.read()
-                fields, _, _ = parse_frontmatter(text)
-                if matches_query(fields, expr):
-                    print(path)
-            except (OSError, IOError):
-                continue
-
-    elif cmd == "init":
-        if len(sys.argv) < 3:
-            print("Usage: farts.py init <file> [field=value...]", file=sys.stderr)
-            sys.exit(1)
-        path = sys.argv[2]
-        fields = {}
-        for arg in sys.argv[3:]:
-            k, _, v = arg.partition("=")
-            if v:
-                fields[k] = v
-        with open(path) as f:
-            text = f.read()
-        result = init_frontmatter(text, fields if fields else None)
-        with open(path, "w") as f:
-            f.write(result)
-
-    else:
-        print("farts: unknown command: {}".format(cmd), file=sys.stderr)
-        sys.exit(1)
+def resolve_path(path):
+    """Resolve a file path against CALLER_PWD for shiv compatibility."""
+    p = Path(path)
+    if not p.is_absolute():
+        caller = os.environ.get("CALLER_PWD", "")
+        if caller:
+            p = Path(caller) / p
+    return str(p)
 
 
-if __name__ == "__main__":
-    main()

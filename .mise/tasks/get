@@ -1,7 +1,28 @@
-#!/usr/bin/env bash
+#!/usr/bin/env -S uv run --script
 #MISE description="Extract a frontmatter field value"
 #USAGE arg "<field>" help="Field name to extract"
 #USAGE arg "<file>" help="Markdown file to read"
+# /// script
+# dependencies = ["pyyaml"]
+# ///
 
-set -euo pipefail
-exec uv run --project "$MISE_CONFIG_ROOT" python3 "$MISE_CONFIG_ROOT/lib/farts.py" get "$@"
+import os
+import sys
+
+sys.path.insert(0, os.environ["MISE_CONFIG_ROOT"] + "/lib")
+from farts import get_field, resolve_path
+
+field = os.environ["usage_field"]
+path = resolve_path(os.environ["usage_file"])
+
+with open(path) as f:
+    text = f.read()
+
+val = get_field(text, field)
+if val is None:
+    sys.exit(1)
+if isinstance(val, list):
+    for item in val:
+        print(item)
+else:
+    print(val)

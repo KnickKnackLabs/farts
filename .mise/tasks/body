@@ -1,6 +1,19 @@
-#!/usr/bin/env bash
+#!/usr/bin/env -S uv run --script
 #MISE description="Extract content after frontmatter"
 #USAGE arg "<file>" help="Markdown file to read"
+# /// script
+# dependencies = ["pyyaml"]
+# ///
 
-set -euo pipefail
-exec uv run --project "$MISE_CONFIG_ROOT" python3 "$MISE_CONFIG_ROOT/lib/farts.py" body "$@"
+import os
+import sys
+
+sys.path.insert(0, os.environ["MISE_CONFIG_ROOT"] + "/lib")
+from farts import get_body, resolve_path
+
+path = resolve_path(os.environ["usage_file"])
+
+with open(path) as f:
+    text = f.read()
+
+print(get_body(text), end="")

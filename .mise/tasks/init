@@ -1,7 +1,31 @@
-#!/usr/bin/env bash
+#!/usr/bin/env -S uv run --script
 #MISE description="Initialize frontmatter on a file"
 #USAGE arg "<file>" help="Markdown file to initialize"
 #USAGE arg "[fields]" var=#true help="Optional field=value pairs"
+# /// script
+# dependencies = ["pyyaml"]
+# ///
 
-set -euo pipefail
-exec uv run --project "$MISE_CONFIG_ROOT" python3 "$MISE_CONFIG_ROOT/lib/farts.py" init "$@"
+import os
+import shlex
+import sys
+
+sys.path.insert(0, os.environ["MISE_CONFIG_ROOT"] + "/lib")
+from farts import init_frontmatter, resolve_path
+
+path = resolve_path(os.environ["usage_file"])
+raw_fields = os.environ.get("usage_fields", "")
+
+fields = {}
+if raw_fields:
+    for arg in shlex.split(raw_fields):
+        if "=" in arg:
+            k, _, v = arg.partition("=")
+            fields[k] = v
+
+with open(path) as f:
+    text = f.read()
+
+result = init_frontmatter(text, fields if fields else None)
+with open(path, "w") as f:
+    f.write(result)
