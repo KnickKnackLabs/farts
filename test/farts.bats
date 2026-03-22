@@ -2,6 +2,7 @@
 
 setup() {
   load test_helper
+  export CALLER_PWD="$BATS_TEST_TMPDIR"
 }
 
 # --- get ---
@@ -13,7 +14,7 @@ created: 2026-03-18
 ---
 
 Body here."
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+  run farts get title note.md
   [ "$status" -eq 0 ]
   [ "$output" = "My Note" ]
 }
@@ -24,7 +25,7 @@ title: "Quoted Title"
 ---
 
 Body.'
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+  run farts get title note.md
   [ "$status" -eq 0 ]
   [ "$output" = "Quoted Title" ]
 }
@@ -35,7 +36,7 @@ tags: [guide, tooling, mise]
 ---
 
 Body."
-  run farts get tags "$BATS_TEST_TMPDIR/note.md"
+  run farts get tags note.md
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "guide" ]
   [ "${lines[1]}" = "tooling" ]
@@ -48,7 +49,7 @@ related: [[[other-note]], [[another]]]
 ---
 
 Body."
-  run farts get related "$BATS_TEST_TMPDIR/note.md"
+  run farts get related note.md
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "[[other-note]]" ]
   [ "${lines[1]}" = "[[another]]" ]
@@ -60,13 +61,13 @@ title: Test
 ---
 
 Body."
-  run farts get author "$BATS_TEST_TMPDIR/note.md"
+  run farts get author note.md
   [ "$status" -eq 1 ]
 }
 
 @test "get: no frontmatter exits 1" {
   create_test_file note.md "Just a plain file."
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+  run farts get title note.md
   [ "$status" -eq 1 ]
 }
 
@@ -76,7 +77,7 @@ tags: []
 ---
 
 Body."
-  run farts get tags "$BATS_TEST_TMPDIR/note.md"
+  run farts get tags note.md
   [ "$status" -eq 0 ]
   [ "$output" = "" ]
 }
@@ -91,7 +92,7 @@ title: Test
 # Heading
 
 Some content."
-  run farts body "$BATS_TEST_TMPDIR/note.md"
+  run farts body note.md
   [ "$status" -eq 0 ]
   [[ "$output" == *"# Heading"* ]]
   [[ "$output" == *"Some content."* ]]
@@ -101,7 +102,7 @@ Some content."
 @test "body: file without frontmatter returns entire content" {
   create_test_file note.md "Just plain text.
 Second line."
-  run farts body "$BATS_TEST_TMPDIR/note.md"
+  run farts body note.md
   [ "$status" -eq 0 ]
   [ "${lines[0]}" = "Just plain text." ]
   [ "${lines[1]}" = "Second line." ]
@@ -116,11 +117,11 @@ tags: [a]
 ---
 
 Body."
-  farts set title "New Title" "$BATS_TEST_TMPDIR/note.md"
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+  farts set title "New Title" note.md
+  run farts get title note.md
   [ "$output" = "New Title" ]
   # Other fields preserved
-  run farts get tags "$BATS_TEST_TMPDIR/note.md"
+  run farts get tags note.md
   [ "$output" = "a" ]
 }
 
@@ -130,21 +131,21 @@ title: Test
 ---
 
 Body."
-  farts set author "rho" "$BATS_TEST_TMPDIR/note.md"
-  run farts get author "$BATS_TEST_TMPDIR/note.md"
+  farts set author "rho" note.md
+  run farts get author note.md
   [ "$output" = "rho" ]
   # Original field preserved
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+  run farts get title note.md
   [ "$output" = "Test" ]
 }
 
 @test "set: creates frontmatter if none exists" {
   create_test_file note.md "Just plain text."
-  farts set title "New Note" "$BATS_TEST_TMPDIR/note.md"
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+  farts set title "New Note" note.md
+  run farts get title note.md
   [ "$output" = "New Note" ]
   # Body preserved
-  run farts body "$BATS_TEST_TMPDIR/note.md"
+  run farts body note.md
   [[ "$output" == *"Just plain text."* ]]
 }
 
@@ -161,7 +162,7 @@ title: Beta
 ---
 
 B."
-  run farts query "title = Alpha" "$BATS_TEST_TMPDIR/a.md" "$BATS_TEST_TMPDIR/b.md"
+  run farts query "title = Alpha" a.md b.md
   [ "$status" -eq 0 ]
   [[ "$output" == *"a.md"* ]]
   [[ "$output" != *"b.md"* ]]
@@ -178,7 +179,7 @@ tags: [reference]
 ---
 
 B."
-  run farts query "tags contains guide" "$BATS_TEST_TMPDIR/a.md" "$BATS_TEST_TMPDIR/b.md"
+  run farts query "tags contains guide" a.md b.md
   [ "$status" -eq 0 ]
   [[ "$output" == *"a.md"* ]]
   [[ "$output" != *"b.md"* ]]
@@ -195,7 +196,7 @@ tags: [x]
 ---
 
 B."
-  run farts query "title exists" "$BATS_TEST_TMPDIR/a.md" "$BATS_TEST_TMPDIR/b.md"
+  run farts query "title exists" a.md b.md
   [ "$status" -eq 0 ]
   [[ "$output" == *"a.md"* ]]
   [[ "$output" != *"b.md"* ]]
@@ -212,7 +213,7 @@ tags: [x]
 ---
 
 B."
-  run farts query "title missing" "$BATS_TEST_TMPDIR/a.md" "$BATS_TEST_TMPDIR/b.md"
+  run farts query "title missing" a.md b.md
   [ "$status" -eq 0 ]
   [[ "$output" != *"a.md"* ]]
   [[ "$output" == *"b.md"* ]]
@@ -229,7 +230,7 @@ created: 2026-03-15
 ---
 
 New."
-  run farts query "created > 2026-02-01" "$BATS_TEST_TMPDIR/old.md" "$BATS_TEST_TMPDIR/new.md"
+  run farts query "created > 2026-02-01" old.md new.md
   [ "$status" -eq 0 ]
   [[ "$output" == *"new.md"* ]]
   [[ "$output" != *"old.md"* ]]
@@ -246,7 +247,7 @@ type: reference
 ---
 
 B."
-  run farts query "type != guide" "$BATS_TEST_TMPDIR/a.md" "$BATS_TEST_TMPDIR/b.md"
+  run farts query "type != guide" a.md b.md
   [ "$status" -eq 0 ]
   [[ "$output" != *"a.md"* ]]
   [[ "$output" == *"b.md"* ]]
@@ -256,21 +257,22 @@ B."
 
 @test "init: adds empty frontmatter" {
   create_test_file note.md "Plain text."
-  farts init "$BATS_TEST_TMPDIR/note.md"
-  run cat "$BATS_TEST_TMPDIR/note.md"
-  [ "${lines[0]}" = "---" ]
-  [ "${lines[1]}" = "---" ]
+  farts init note.md
+  run farts get title note.md
+  [ "$status" -eq 1 ]
+  # Frontmatter delimiters present, body preserved
+  run farts body note.md
   [[ "$output" == *"Plain text."* ]]
 }
 
 @test "init: adds frontmatter with fields" {
   create_test_file note.md "Plain text."
-  farts init "$BATS_TEST_TMPDIR/note.md" title="My Note" created=2026-03-18
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+  farts init note.md title="My Note" created=2026-03-18
+  run farts get title note.md
   [ "$output" = "My Note" ]
-  run farts get created "$BATS_TEST_TMPDIR/note.md"
+  run farts get created note.md
   [ "$output" = "2026-03-18" ]
-  run farts body "$BATS_TEST_TMPDIR/note.md"
+  run farts body note.md
   [[ "$output" == *"Plain text."* ]]
 }
 
@@ -280,8 +282,8 @@ title: Existing
 ---
 
 Body."
-  farts init "$BATS_TEST_TMPDIR/note.md" title="Overwrite?"
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+  farts init note.md title="Overwrite?"
+  run farts get title note.md
   [ "$output" = "Existing" ]
 }
 
@@ -291,8 +293,8 @@ Body."
   printf '%s' '---
 title: Test
 ---
-Body' > "$BATS_TEST_TMPDIR/note.md"
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+Body' > "$CALLER_PWD/note.md"
+  run farts get title note.md
   [ "$status" -eq 0 ]
   [ "$output" = "Test" ]
 }
@@ -301,8 +303,8 @@ Body' > "$BATS_TEST_TMPDIR/note.md"
   printf '%s' '---
 title: Test
 ---
-Body line' > "$BATS_TEST_TMPDIR/note.md"
-  run farts body "$BATS_TEST_TMPDIR/note.md"
+Body line' > "$CALLER_PWD/note.md"
+  run farts body note.md
   [ "$status" -eq 0 ]
   [ "$output" = "Body line" ]
 }
@@ -311,6 +313,26 @@ Body line' > "$BATS_TEST_TMPDIR/note.md"
   create_test_file note.md "---
 title: Broken
 no closing delimiter"
-  run farts get title "$BATS_TEST_TMPDIR/note.md"
+  run farts get title note.md
   [ "$status" -eq 1 ]
+}
+
+# --- CALLER_PWD resolution ---
+
+@test "get: works with absolute path" {
+  create_test_file note.md "---
+title: Absolute
+---
+
+Body."
+  run farts get title "$CALLER_PWD/note.md"
+  [ "$status" -eq 0 ]
+  [ "$output" = "Absolute" ]
+}
+
+@test "init: works with relative path via CALLER_PWD" {
+  create_test_file new.md ""
+  farts init new.md title="Created"
+  run farts get title new.md
+  [ "$output" = "Created" ]
 }

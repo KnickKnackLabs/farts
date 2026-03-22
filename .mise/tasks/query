@@ -1,7 +1,27 @@
-#!/usr/bin/env bash
+#!/usr/bin/env -S uv run --script
 #MISE description="Filter files by frontmatter fields"
 #USAGE arg "<expr>" help="Query expression (e.g. 'tags contains guide')"
 #USAGE arg "<files>" var=#true help="Markdown files to search"
+# /// script
+# dependencies = ["pyyaml"]
+# ///
 
-set -euo pipefail
-exec uv run --project "$MISE_CONFIG_ROOT" python3 "$MISE_CONFIG_ROOT/lib/farts.py" query "$@"
+import os
+import sys
+
+sys.path.insert(0, os.environ["MISE_CONFIG_ROOT"] + "/lib")
+from farts import parse_frontmatter, matches_query, resolve_path
+
+expr = os.environ["usage_expr"]
+files = os.environ.get("usage_files", "").split()
+
+for path in files:
+    path = resolve_path(path)
+    try:
+        with open(path) as f:
+            text = f.read()
+        fields, _, _ = parse_frontmatter(text)
+        if matches_query(fields, expr):
+            print(path)
+    except (OSError, IOError):
+        continue
