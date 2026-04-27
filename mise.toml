@@ -1,5 +1,5 @@
 [tools]
-python = "3"
+python = "3.13"
 uv = "0.10.0"
 bats = "1.13.0"
 usage = "1"
