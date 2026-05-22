@@ -8,17 +8,18 @@ fi
 # First arg is the subcommand (get, set, init, etc.), rest are task args.
 # Exported so subshells can use it too.
 farts() {
-  if [ -z "${CALLER_PWD:-}" ]; then
-    echo "CALLER_PWD not set" >&2
+  if [ -z "${FARTS_CALLER_PWD:-}" ]; then
+    echo "FARTS_CALLER_PWD not set" >&2
     return 1
   fi
   local subcmd="$1"; shift
-  cd "$MISE_CONFIG_ROOT" && CALLER_PWD="$CALLER_PWD" mise run -q "$subcmd" -- "$@"
+  cd "$MISE_CONFIG_ROOT" && FARTS_CALLER_PWD="$FARTS_CALLER_PWD" \
+    mise run -q "$subcmd" -- "$@" 2>"$BATS_TEST_TMPDIR/farts.stderr"
 }
 export -f farts
 
-# Create a test file relative to CALLER_PWD
+# Create a test file relative to FARTS_CALLER_PWD
 create_test_file() {
   local name="$1"; shift
-  printf '%s' "$*" > "$CALLER_PWD/$name"
+  printf '%s' "$*" > "$FARTS_CALLER_PWD/$name"
 }

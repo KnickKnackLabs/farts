@@ -2,7 +2,7 @@
 
 setup() {
   load test_helper
-  export CALLER_PWD="$BATS_TEST_TMPDIR"
+  export FARTS_CALLER_PWD="$BATS_TEST_TMPDIR"
 }
 
 # --- get ---
@@ -293,7 +293,7 @@ Body."
   printf '%s' '---
 title: Test
 ---
-Body' > "$CALLER_PWD/note.md"
+Body' > "$FARTS_CALLER_PWD/note.md"
   run farts get title note.md
   [ "$status" -eq 0 ]
   [ "$output" = "Test" ]
@@ -303,7 +303,7 @@ Body' > "$CALLER_PWD/note.md"
   printf '%s' '---
 title: Test
 ---
-Body line' > "$CALLER_PWD/note.md"
+Body line' > "$FARTS_CALLER_PWD/note.md"
   run farts body note.md
   [ "$status" -eq 0 ]
   [ "$output" = "Body line" ]
@@ -317,7 +317,7 @@ no closing delimiter"
   [ "$status" -eq 1 ]
 }
 
-# --- CALLER_PWD resolution ---
+# --- FARTS_CALLER_PWD resolution ---
 
 @test "get: works with absolute path" {
   create_test_file note.md "---
@@ -325,14 +325,29 @@ title: Absolute
 ---
 
 Body."
-  run farts get title "$CALLER_PWD/note.md"
+  run farts get title "$FARTS_CALLER_PWD/note.md"
   [ "$status" -eq 0 ]
   [ "$output" = "Absolute" ]
 }
 
-@test "init: works with relative path via CALLER_PWD" {
+@test "init: works with relative path via FARTS_CALLER_PWD" {
   create_test_file new.md ""
   farts init new.md title="Created"
   run farts get title new.md
   [ "$output" = "Created" ]
+}
+
+@test "relative paths ignore stale legacy CALLER_PWD" {
+  create_test_file note.md "---
+title: Scoped
+---
+
+Body."
+  mkdir -p "$BATS_TEST_TMPDIR/stale"
+
+  run env FARTS_CALLER_PWD="$FARTS_CALLER_PWD" CALLER_PWD="$BATS_TEST_TMPDIR/stale" \
+    mise -C "$MISE_CONFIG_ROOT" run -q get -- title note.md
+
+  [ "$status" -eq 0 ]
+  [ "$output" = "Scoped" ]
 }
