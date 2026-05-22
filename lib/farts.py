@@ -206,10 +206,10 @@ def matches_query(fields, expr):
 
 
 def resolve_path(path):
-    """Resolve a file path against CALLER_PWD for shiv compatibility."""
+    """Resolve a file path against FARTS_CALLER_PWD for shiv compatibility."""
     p = Path(path)
     if not p.is_absolute():
-        caller = os.environ.get("CALLER_PWD", "")
+        caller = os.environ.get("FARTS_CALLER_PWD", "")
         if caller:
             p = Path(caller) / p
     return str(p)
